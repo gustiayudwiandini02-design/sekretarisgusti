@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sekretaris gusti-v1774885687530';
+const CACHE_NAME = 'jadwal pengingat -v1774890466056';
 const urlsToCache = [
   './',
   './index.html',

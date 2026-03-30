@@ -520,6 +520,17 @@
         window.archiveMode = 'link'; 
 
         document.addEventListener('DOMContentLoaded', () => {
+            // LOAD DATA DARI LOKAL MEMORI TERLEBIH DAHULU (Anti Hilang Saat Refresh)
+            const localSavedData = localStorage.getItem('akademikData');
+            if (localSavedData) {
+                try {
+                    const parsedData = JSON.parse(localSavedData);
+                    if (parsedData.profile) profileData = parsedData.profile;
+                    if (parsedData.subjects && parsedData.subjects.length > 0) window.subjectsData = parsedData.subjects;
+                    if (parsedData.archives) window.archivesData = parsedData.archives;
+                } catch(e) { console.error("Gagal load lokal", e); }
+            }
+
             renderProfile();
             renderSubjectsList();
             renderArchiveSubjectsList();
@@ -540,40 +551,64 @@
                 document.getElementById('loading-overlay').classList.remove('hide');
                 const response = await fetch(APPS_SCRIPT_URL + "?action=getData");
                 const result = await response.json();
+                
                 if(result.success && result.data) {
+                    if(result.data.profile) profileData = result.data.profile;
                     if(result.data.subjects && result.data.subjects.length > 0) window.subjectsData = result.data.subjects;
                     if(result.data.archives) window.archivesData = result.data.archives;
+                    
+                    // Update memori lokal dengan data terbaru dari Google
+                    localStorage.setItem('akademikData', JSON.stringify({
+                        profile: profileData,
+                        subjects: window.subjectsData,
+                        archives: window.archivesData
+                    }));
+
+                    renderProfile();
                     renderSubjectsList();
                     renderArchiveSubjectsList();
+                } else if (result.error) {
+                    showToast("Error Google: " + result.error, true);
                 }
             } catch(e) {
-                console.error("Gagal mengambil data:", e);
+                console.error("Gagal mengambil data dari Google:", e);
             } finally {
                 document.getElementById('loading-overlay').classList.add('hide');
             }
         }
 
         async function syncToGAS() {
+            // BACKUP LOKAL INSTAN (Data tersimpan di HP/Browser langsung)
+            const payload = {
+                database: {
+                    profile: profileData,
+                    subjects: window.subjectsData,
+                    archives: window.archivesData
+                }
+            };
+            localStorage.setItem('akademikData', JSON.stringify(payload.database));
+
             if(APPS_SCRIPT_URL === "") return;
+            
             try {
                 document.getElementById('loading-overlay').classList.remove('hide');
-                document.getElementById('loading-text').innerText = "Menyimpan ke Cloud...";
-                
-                const payload = {
-                    database: {
-                        subjects: window.subjectsData,
-                        archives: window.archivesData
-                    }
-                };
+                document.getElementById('loading-text').innerText = "Menyimpan ke Google Drive...";
 
-                await fetch(APPS_SCRIPT_URL + "?action=saveData", {
+                const response = await fetch(APPS_SCRIPT_URL + "?action=saveData", {
                     method: "POST",
                     body: JSON.stringify(payload),
-                    headers: { "Content-Type": "text/plain;charset=utf-8" }
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    redirect: "follow"
                 });
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    showToast("Google Error: " + (result.error || "Gagal menyimpan"), true);
+                }
             } catch(e) {
                 console.error("Gagal sinkronisasi:", e);
-                showToast("Gagal menyimpan ke Google", true);
+                showToast("Koneksi ke Google gagal, tapi data aman di HP", true);
             } finally {
                 document.getElementById('loading-overlay').classList.add('hide');
                 document.getElementById('loading-text').innerText = "Memproses Data...";
@@ -692,6 +727,7 @@
             renderProfile();
             closeModal('modal-profile');
             showToast("Profil berhasil diperbarui!");
+            syncToGAS();
         }
 
         // ==========================================

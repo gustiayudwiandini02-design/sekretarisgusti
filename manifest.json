@@ -1,6 +1,6 @@
 {
-  "name": "Sekretaris Gusti",
-  "short_name": "Sekretaris Gusti",
+  "name": "Jadwal Pengingat ",
+  "short_name": "Jadwal Pengingat ",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
