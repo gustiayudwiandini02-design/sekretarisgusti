@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Akademik & Catatan</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fce7f3; /* Dasar Pink lebih pekat (pink-100) */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Animasi Background Blobs (Gumpalan Warna) */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(40px, -50px) scale(1.1); }
+            66% { transform: translate(-30px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+            animation: blob 8s infinite alternate;
+        }
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+
+        /* Glassmorphism disesuaikan agar gumpalan warna tembus pandang */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 30px rgba(219, 39, 119, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 15px -1px rgba(219, 39, 119, 0.08); /* pink shadow */
+            transition: all 0.3s ease;
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        .glass-button:hover { 
+            background: #ffffff;
+            transform: translateY(-3px); 
+            box-shadow: 0 8px 15px -3px rgba(219, 39, 119, 0.15);
+        }
+
+        /* Custom Scrollbar Pink */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #f9a8d4; border-radius: 10px; } /* pink-300 */
+        ::-webkit-scrollbar-thumb:hover { background: #f472b6; } /* pink-400 */
+
+        .hide { display: none !important; }
+
+        /* Navigasi Bawah Animasi */
+        .nav-item.active { color: #db2777; } /* pink-600 */
+        .nav-item.active i {
+            background-color: #fbcfe8; /* pink-200 */
+            border-radius: 9999px;
+            padding: 4px 12px;
+            transition: all 0.3s;
+        }
+
+        .locked-disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+    </style>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+  
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col items-center py-6 px-4 pb-24 md:pb-6 transition-colors duration-300 relative">
+
+    <!-- BACKGROUND BLOBS (Aesthetic Gradient Mesh) -->
+    <div class="fixed inset-0 z-[-1] pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-72 h-72 md:w-96 md:h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob"></div>
+        <div class="absolute top-[20%] right-[-10%] w-72 h-72 md:w-96 md:h-96 bg-rose-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-10%] left-[20%] w-72 h-72 md:w-96 md:h-96 bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[200] flex flex-col items-center justify-center text-pink-600 hide transition-all">
+        <i class="ph ph-spinner-gap animate-spin text-5xl mb-4 text-pink-500"></i>
+        <p class="font-bold text-gray-700 bg-white px-5 py-2.5 rounded-full shadow-lg border border-pink-100" id="loading-text">Memproses Data...</p>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="w-full max-w-5xl relative">
+        
+        <!-- HEADER -->
+        <div id="main-header" class="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between glass-panel rounded-3xl p-4 sm:p-5">
+            <div class="flex items-center gap-4 w-full sm:w-auto">
+                <img id="header-avatar" src="" alt="Profile" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-pink-300 shadow-md object-cover bg-white">
+                <div>
+                    <h1 id="header-name" class="font-bold text-lg sm:text-xl tracking-wide text-pink-950 leading-tight">FIKRUR ROSYID</h1>
+                    <p id="header-nim" class="text-[10px] sm:text-xs bg-pink-500 text-white font-semibold py-0.5 px-3 rounded-full inline-block mt-1 shadow-sm">Mahasiswa / 24381051042</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <!-- TOMBOL GEMBOK -->
+                <button onclick="toggleLock()" id="btn-lock" class="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl font-bold transition-all shadow-sm border border-red-200">
+                    <i class="ph ph-lock-key text-xl"></i>
+                    <span class="text-sm">Terkunci</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEWS -->
+        <div id="app-content" class="glass-panel rounded-3xl p-4 sm:p-6 md:p-8 min-h-[500px]">
+            
+            <!-- VIEW: DASHBOARD (MENU) -->
+            <div id="view-dashboard" class="view-section">
+                <div class="text-center mb-6 md:hidden">
+                    <h2 class="text-xl font-bold text-pink-900 drop-shadow-sm">Selamat Datang!</h2>
+                    <p class="text-sm text-pink-700">Pilih menu di navigasi bawah untuk memulai.</p>
+                </div>
+                <div class="hidden md:grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button onclick="switchView('profil')" class="glass-button rounded-3xl p-8 flex flex-col items-center justify-center gap-4 group">
+                        <div class="bg-pink-50 p-5 rounded-full text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors shadow-inner border border-pink-100">
+                            <i class="ph ph-user text-5xl"></i>
+                        </div>
+                        <h2 class="font-bold text-pink-950 text-xl tracking-wide">PROFIL</h2>
+                    </button>
+                    
+                    <button onclick="switchView('catatan')" class="glass-button rounded-3xl p-8 flex flex-col items-center justify-center gap-4 group">
+                        <div class="bg-pink-50 p-5 rounded-full text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors shadow-inner border border-pink-100">
+                            <i class="ph ph-books text-5xl"></i>
+                        </div>
+                        <h2 class="font-bold text-pink-950 text-xl tracking-wide">CATATAN KULIAH</h2>
+                    </button>
+                    
+                    <button onclick="switchView('arsip')" class="glass-button rounded-3xl p-8 flex flex-col items-center justify-center gap-4 group">
+                        <div class="bg-pink-50 p-5 rounded-full text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors shadow-inner border border-pink-100">
+                            <i class="ph ph-archive text-5xl"></i>
+                        </div>
+                        <h2 class="font-bold text-pink-950 text-xl tracking-wide">ARSIP & TAUTAN</h2>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIEW: PROFIL -->
+            <div id="view-profil" class="view-section hide text-pink-950">
+                <div class="flex items-center justify-between mb-6 border-b border-pink-200 pb-4">
+                    <h2 class="text-2xl font-bold flex items-center gap-2"><i class="ph ph-user text-pink-500"></i> Detail Profil</h2>
+                    <div class="flex gap-2">
+                        <button onclick="switchView('dashboard')" class="bg-white hover:bg-pink-50 px-4 py-2 rounded-lg font-bold transition-colors border border-pink-200 text-pink-600 shadow-sm flex items-center gap-2 text-sm"><i class="ph ph-arrow-left"></i> Kembali</button>
+                        <button onclick="openProfileModal()" class="action-btn hidden bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm flex items-center gap-2 text-sm"><i class="ph ph-pencil-simple"></i> Edit</button>
+                    </div>
+                </div>
+                <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-2xl mx-auto flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start border-none bg-white/60 shadow-sm">
+                    <div class="relative">
+                        <img id="detail-avatar" src="" alt="Profile Big" class="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl shadow-lg border-4 border-pink-50 bg-white">
+                        <span class="absolute -bottom-3 -right-3 bg-green-500 border-4 border-white text-white p-2 rounded-full shadow-md"><i class="ph ph-check-circle text-xl"></i></span>
+                    </div>
+                    <div class="space-y-4 flex-1 w-full text-center md:text-left">
+                        <div class="bg-white/80 p-4 rounded-2xl border border-pink-100">
+                            <p class="text-xs text-pink-600 font-bold uppercase tracking-wider mb-1">Nama Lengkap</p>
+                            <p id="detail-name" class="text-xl font-bold text-gray-900">-</p>
+                        </div>
+                        <div class="bg-white/80 p-4 rounded-2xl border border-pink-100">
+                            <p class="text-xs text-pink-600 font-bold uppercase tracking-wider mb-1">Nomor Induk Mahasiswa</p>
+                            <p id="detail-nim" class="text-xl font-bold text-gray-900">-</p>
+                        </div>
+                        <div class="bg-white/80 p-4 rounded-2xl border border-pink-100 flex justify-between md:justify-start md:gap-8">
+                            <div>
+                                <p class="text-xs text-pink-600 font-bold uppercase tracking-wider mb-1">Program Studi</p>
+                                <p id="detail-prodi" class="text-lg font-bold text-gray-900">-</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-pink-600 font-bold uppercase tracking-wider mb-1">Smt / Kelas</p>
+                                <p class="text-lg font-bold text-gray-900"><span id="detail-semester">-</span> / <span id="detail-kelas">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: CATATAN KULIAH (SUBJECT LIST) -->
+            <div id="view-catatan" class="view-section hide">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-pink-200 pb-4 gap-4">
+                    <h2 class="text-2xl font-bold flex items-center gap-2 text-pink-950"><i class="ph ph-books text-pink-500"></i> Catatan Kuliah</h2>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="switchView('dashboard')" class="flex-1 sm:flex-none bg-white hover:bg-pink-50 px-4 py-2 rounded-xl font-bold transition-colors border border-pink-200 text-pink-600 shadow-sm flex items-center justify-center gap-2 text-sm"><i class="ph ph-arrow-left"></i> Kembali</button>
+                        <button onclick="openSubjectModal()" class="action-btn hidden flex-1 sm:flex-none bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl font-bold shadow-md shadow-pink-500/30 transition-colors flex items-center justify-center gap-2">
+                            <i class="ph ph-plus-bold"></i> Tambah MK
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="subjects-container">
+                    <!-- Subjects injected via JS -->
+                </div>
+            </div>
+
+            <!-- VIEW: COURSE DETAIL (16 MEETINGS) -->
+            <div id="view-course-detail" class="view-section hide text-pink-950">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b border-pink-200 pb-4 gap-4">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold flex items-center gap-2 leading-tight text-gray-900" id="detail-course-name"><i class="ph ph-chalkboard-teacher text-pink-500"></i> -</h2>
+                        <p class="text-sm font-bold text-gray-600 mt-1 flex items-center gap-1"><i class="ph ph-user-circle"></i> <span id="detail-course-lecturer">-</span></p>
+                    </div>
+                    <button onclick="switchView('catatan')" class="bg-white hover:bg-pink-50 px-4 py-2 rounded-xl font-bold transition-colors border border-pink-200 text-pink-600 shadow-sm w-fit flex items-center gap-2">
+                        <i class="ph ph-arrow-left"></i> Kembali
+                    </button>
+                </div>
+
+                <div class="bg-white/80 rounded-2xl p-4 mb-6 flex flex-wrap gap-3 sm:gap-6 text-sm font-bold text-gray-700 shadow-sm border border-pink-100">
+                    <div class="flex items-center gap-2 bg-pink-50/80 px-3 py-1.5 rounded-lg border border-pink-100"><i class="ph ph-calendar text-pink-500 text-lg"></i> <span id="detail-day">-</span></div>
+                    <div class="flex items-center gap-2 bg-pink-50/80 px-3 py-1.5 rounded-lg border border-pink-100"><i class="ph ph-clock text-red-500 text-lg"></i> <span id="detail-time">-</span></div>
+                    <div class="flex items-center gap-2 bg-pink-50/80 px-3 py-1.5 rounded-lg border border-pink-100"><i class="ph ph-map-pin text-yellow-500 text-lg"></i> <span id="detail-room">-</span></div>
+                    <div class="flex items-center gap-2 bg-pink-50/80 px-3 py-1.5 rounded-lg border border-pink-100"><i class="ph ph-users text-blue-500 text-lg"></i> Kelas <span id="detail-class">-</span></div>
+                </div>
+
+                <h3 class="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2"><i class="ph ph-notebook text-pink-500"></i> Catatan Per Pertemuan (1 - 16)</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" id="meetings-container">
+                    <!-- 16 buttons injected here via JS -->
+                </div>
+            </div>
+
+            <!-- VIEW: ARSIP (SUBJECT LIST) -->
+            <div id="view-arsip" class="view-section hide">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-pink-200 pb-4 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold flex items-center gap-2 text-pink-950"><i class="ph ph-archive text-pink-500"></i> Arsip & Tautan</h2>
+                        <p class="text-xs sm:text-sm font-medium text-gray-500 mt-1">Pilih mata kuliah untuk melihat/menyimpan File & Tautan.</p>
+                    </div>
+                    <button onclick="switchView('dashboard')" class="bg-white hover:bg-pink-50 px-4 py-2 rounded-xl font-bold transition-colors border border-pink-200 text-pink-600 shadow-sm w-full sm:w-auto flex items-center justify-center gap-2 text-sm"><i class="ph ph-arrow-left"></i> Kembali</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="arsip-subjects-container">
+                    <!-- Subjects injected via JS -->
+                </div>
+            </div>
+
+            <!-- VIEW: ARSIP DETAIL (LINKS & FILES) -->
+            <div id="view-arsip-detail" class="view-section hide text-pink-950">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b border-pink-200 pb-4 gap-4">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold flex items-center gap-2 leading-tight text-gray-900"><i class="ph ph-folder-open text-pink-500"></i> <span id="arsip-detail-name">Mata Kuliah</span></h2>
+                        <p class="text-sm font-bold text-gray-500 mt-1">Arsip Dokumen, File, dan Tautan Terkait</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="openArchiveModal()" class="action-btn hidden bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <i class="ph ph-plus-circle text-lg"></i> Tambah
+                        </button>
+                        <button onclick="switchView('arsip')" class="bg-white hover:bg-pink-50 px-4 py-2 rounded-xl font-bold transition-colors border border-pink-200 text-pink-600 shadow-sm flex items-center justify-center gap-2">
+                            <i class="ph ph-arrow-left"></i> Kembali
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-3" id="archives-container">
+                    <!-- Archives injected here via JS -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MOBILE BOTTOM NAVIGATION -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-xl border-t border-pink-200 flex justify-around items-center pt-2 pb-safe-area shadow-[0_-8px_20px_rgba(255,192,203,0.3)] z-[100] rounded-t-3xl" style="padding-bottom: max(12px, env(safe-area-inset-bottom));">
+        <button onclick="switchView('dashboard')" class="nav-item active flex flex-col items-center gap-1 text-gray-400 p-2 w-16" id="nav-btn-dashboard">
+            <i class="ph ph-house text-2xl"></i><span class="text-[10px] font-bold">Home</span>
+        </button>
+        <button onclick="switchView('profil')" class="nav-item flex flex-col items-center gap-1 text-gray-400 p-2 w-16" id="nav-btn-profil">
+            <i class="ph ph-user text-2xl"></i><span class="text-[10px] font-bold">Profil</span>
+        </button>
+        <button onclick="switchView('catatan')" class="nav-item flex flex-col items-center gap-1 text-gray-400 p-2 w-16" id="nav-btn-catatan">
+            <i class="ph ph-books text-2xl"></i><span class="text-[10px] font-bold">Catatan</span>
+        </button>
+        <button onclick="switchView('arsip')" class="nav-item flex flex-col items-center gap-1 text-gray-400 p-2 w-16 relative" id="nav-btn-arsip">
+            <i class="ph ph-archive text-2xl"></i><span class="text-[10px] font-bold">Arsip</span>
+        </button>
+    </nav>
+
+    <!-- MODALS (All Popups) -->
+
+    <!-- Modal: Password Lock -->
+    <div id="modal-password" class="fixed inset-0 bg-gray-600/30 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-red-100">
+            <div class="bg-red-50 border-b border-red-100 p-4 sm:p-5 flex justify-between items-center text-red-800">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="ph ph-lock-key text-2xl"></i> Buka Gembok</h3>
+                <button onclick="closeModal('modal-password')" class="bg-red-100 p-1.5 rounded-full hover:bg-red-200 transition-colors text-red-700"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-gray-600 text-center font-medium mb-2">Masukkan sandi untuk mengedit data.</p>
+                <div>
+                    <input type="password" id="input-password" class="w-full border-2 border-red-200 bg-red-50/50 rounded-xl px-4 py-3 focus:border-red-400 focus:bg-white focus:outline-none font-bold text-gray-800 text-center tracking-widest" placeholder="•••••">
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 border-t border-gray-100 flex justify-end gap-3">
+                <button onclick="closeModal('modal-password')" class="px-5 py-2.5 bg-white text-gray-600 border border-gray-300 rounded-xl font-bold hover:bg-gray-100">Batal</button>
+                <button onclick="verifyPassword()" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-md transition-all flex items-center gap-2"><i class="ph ph-key"></i> Buka</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Profile -->
+    <div id="modal-profile" class="fixed inset-0 bg-gray-600/30 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-pink-100">
+            <div class="bg-pink-50 border-b border-pink-100 p-4 sm:p-5 flex justify-between items-center text-pink-800">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="ph ph-user-circle text-2xl"></i> Edit Profil</h3>
+                <button onclick="closeModal('modal-profile')" class="bg-pink-200/50 p-1.5 rounded-full hover:bg-pink-200 transition-colors text-pink-700"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-pink-700 mb-1">Nama Lengkap</label>
+                    <input type="text" id="form-prof-name" class="w-full bg-pink-50/50 border border-pink-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pink-500 focus:bg-white font-bold text-gray-800 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-pink-700 mb-1">NIM</label>
+                    <input type="text" id="form-prof-nim" class="w-full bg-pink-50/50 border border-pink-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pink-500 focus:bg-white font-bold text-gray-800 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-pink-700 mb-1">Program Studi</label>
+                    <input type="text" id="form-prof-prodi" class="w-full bg-pink-50/50 border border-pink-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pink-500 focus:bg-white font-bold text-gray-800 transition-colors">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-pink-700 mb-1">Semester</label>
+                        <input type="text" id="form-prof-smt" class="w-full bg-pink-50/50 border border-pink-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pink-500 focus:bg-white font-bold text-gray-800 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-pink-700 mb-1">Kelas</label>
+                        <input type="text" id="form-prof-kelas" class="w-full bg-pink-50/50 border border-pink-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pink-500 focus:bg-white font-bold text-gray-800 transition-colors">
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+                <button onclick="closeModal('modal-profile')" class="px-5 py-2 rounded-xl font-bold text-gray-600 border border-gray-300 bg-white hover:bg-gray-100 transition-colors">Batal</button>
+                <button onclick="saveProfile()" class="px-5 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-bold transition-colors">Simpan Profil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Form Mata Kuliah -->
+    <div id="modal-subject" class="fixed inset-0 bg-gray-600/30 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-pink-100">
+            <div class="bg-pink-50 border-b border-pink-100 p-4 sm:p-5 flex justify-between items-center text-pink-800">
+                <h3 class="font-bold text-lg flex items-center gap-2" id="modal-subject-title"><i class="ph ph-books text-2xl"></i> Mata Kuliah</h3>
+                <button onclick="closeModal('modal-subject')" class="bg-pink-200/50 p-1.5 rounded-full hover:bg-pink-200 transition-colors text-pink-700"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="p-5 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <input type="hidden" id="form-subject-id">
+                <div>
+                    <label class="block text-xs font-bold text-pink-700 uppercase mb-1">Mata Kuliah</label>
+                    <input type="text" id="form-subject-name" class="w-full border border-pink-200 bg-pink-50/50 rounded-xl px-4 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 transition-colors">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-pink-700 uppercase mb-1">Dosen Pengampu</label>
+                        <input type="text" id="form-subject-lecturer" class="w-full border border-pink-200 bg-pink-50/50 rounded-xl px-4 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-pink-700 uppercase mb-1">Kelas</label>
+                        <input type="text" id="form-subject-class" class="w-full border border-pink-200 bg-pink-50/50 rounded-xl px-4 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 transition-colors">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-pink-700 uppercase mb-1">Hari</label>
+                        <select id="form-subject-day" class="w-full border border-pink-200 bg-pink-50/50 rounded-xl px-2 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 text-sm transition-colors">
+                            <option value="SENIN">Senin</option><option value="SELASA">Selasa</option>
+                            <option value="RABU">Rabu</option><option value="KAMIS">Kamis</option>
+                            <option value="JUMAT">Jumat</option><option value="SABTU">Sabtu</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-pink-700 uppercase mb-1">Waktu</label>
+                        <input type="text" id="form-subject-time" class="w-full border border-pink-200 bg-pink-50/50 rounded-xl px-2 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 text-sm transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-pink-700 uppercase mb-1">Ruang</label>
+                        <input type="text" id="form-subject-room" class="w-full border border-pink-200 bg-pink-50/50 rounded-xl px-2 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 text-sm transition-colors">
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 border-t border-gray-100 flex justify-end gap-3">
+                <button onclick="closeModal('modal-subject')" class="px-5 py-2.5 bg-white text-gray-600 border border-gray-300 rounded-xl font-bold hover:bg-gray-100">Batal</button>
+                <button onclick="saveSubject()" class="px-5 py-2.5 bg-pink-500 text-white rounded-xl font-bold shadow-md hover:bg-pink-600 transition-all">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Form Catatan Pertemuan -->
+    <div id="modal-note" class="fixed inset-0 bg-gray-600/30 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-3xl overflow-hidden flex flex-col h-[85vh] shadow-2xl border border-pink-100">
+            <div class="bg-pink-50 border-b border-pink-100 p-4 sm:p-5 flex justify-between items-center text-pink-800">
+                <h3 class="font-bold text-lg flex items-center gap-2" id="modal-note-title"><i class="ph ph-notebook text-2xl"></i> Catatan</h3>
+                <button onclick="closeModal('modal-note')" class="bg-pink-200/50 p-1.5 rounded-full hover:bg-pink-200 transition-colors text-pink-700"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="p-4 sm:p-6 flex-1 bg-white flex flex-col">
+                <p class="text-sm font-bold text-pink-600 mb-3 pb-2 border-b border-pink-100" id="modal-note-subtitle">MK</p>
+                <textarea id="form-note-content" class="w-full flex-1 border-2 border-pink-100 bg-pink-50/30 rounded-xl p-4 sm:p-5 focus:border-pink-400 focus:bg-white focus:outline-none resize-none font-medium text-gray-800 text-base leading-relaxed transition-colors" placeholder="Ketik catatan..."></textarea>
+            </div>
+            <div class="bg-gray-50 p-4 sm:p-5 border-t border-gray-200 flex justify-between items-center">
+                <p class="text-xs font-bold text-gray-500 flex items-center gap-1.5"><i class="ph ph-cloud-check text-lg text-green-500"></i> Auto-save Support</p>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('modal-note')" class="px-5 py-2.5 bg-white text-gray-600 border border-gray-300 rounded-xl font-bold hidden sm:block hover:bg-gray-100">Tutup</button>
+                    <button id="btn-save-note" onclick="saveNote()" class="action-btn px-6 py-2.5 bg-pink-500 text-white rounded-xl font-bold shadow-md hover:bg-pink-600 transition-all flex items-center gap-2"><i class="ph ph-floppy-disk text-lg"></i> Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Form Arsip -->
+    <div id="modal-archive" class="fixed inset-0 bg-gray-600/30 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-pink-100">
+            <div class="bg-pink-50 border-b border-pink-100 p-4 sm:p-5 flex justify-between items-center text-pink-800">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="ph ph-folder-plus text-2xl"></i> Tambah Arsip</h3>
+                <button onclick="closeModal('modal-archive')" class="bg-pink-200/50 p-1.5 rounded-full hover:bg-pink-200 transition-colors text-pink-700"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="p-5 sm:p-6 space-y-4">
+                <input type="hidden" id="form-archive-id">
+                
+                <div class="flex bg-pink-100/50 p-1 rounded-xl mb-4">
+                    <button id="tab-link" onclick="setArchiveMode('link')" class="flex-1 py-2 rounded-lg font-bold text-sm bg-white shadow text-pink-700 transition-all">Tautan (Link)</button>
+                    <button id="tab-file" onclick="setArchiveMode('file')" class="flex-1 py-2 rounded-lg font-bold text-sm text-pink-600/60 hover:text-pink-700 transition-all">Upload File</button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-pink-700 mb-1">Judul Arsip</label>
+                    <input type="text" id="form-archive-title" class="w-full border-2 border-pink-200 bg-pink-50/50 rounded-xl px-4 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 transition-colors" placeholder="Contoh: RPS / File Materi PDF">
+                </div>
+                
+                <div id="section-link">
+                    <label class="block text-xs font-bold text-pink-700 mb-1">URL (Tautan)</label>
+                    <input type="url" id="form-archive-url" class="w-full border-2 border-pink-200 bg-pink-50/50 rounded-xl px-4 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 transition-colors" placeholder="https://...">
+                </div>
+
+                <div id="section-file" class="hidden">
+                    <label class="block text-xs font-bold text-pink-700 mb-1">Pilih File (Dokumen/Gambar)</label>
+                    <input type="file" id="form-archive-file" class="w-full border-2 border-dashed border-pink-300 bg-pink-50/50 rounded-xl px-4 py-6 text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-pink-100 file:text-pink-700 hover:file:bg-pink-200 cursor-pointer text-center transition-colors">
+                    <p class="text-[10px] text-pink-600 mt-2">*File akan disimpan dalam format Base64 (maks ~2MB).</p>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-pink-700 mb-1">Kategori</label>
+                    <select id="form-archive-type" class="w-full border-2 border-pink-200 bg-pink-50/50 rounded-xl px-3 py-2.5 focus:border-pink-500 focus:bg-white focus:outline-none font-bold text-gray-800 text-sm transition-colors">
+                        <option value="RPS">📄 Dokumen (RPS/Materi)</option>
+                        <option value="Tugas">📋 Dokumen Tugas</option>
+                        <option value="Grup">💬 Grup (WA/Telegram)</option>
+                        <option value="Classroom">🏫 G-Classroom</option>
+                        <option value="Lainnya">🔗 Lainnya</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 border-t border-gray-100 flex justify-end gap-3">
+                <button onclick="closeModal('modal-archive')" class="px-5 py-2.5 bg-white text-gray-600 border border-gray-300 rounded-xl font-bold hover:bg-gray-100">Batal</button>
+                <button onclick="saveArchive()" class="px-5 py-2.5 bg-pink-500 text-white rounded-xl font-bold shadow-md hover:bg-pink-600 transition-all"><i class="ph ph-upload-simple"></i> Simpan Arsip</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed top-6 right-6 md:bottom-6 md:top-auto bg-green-500 text-white px-6 py-3.5 rounded-2xl shadow-xl font-bold transform -translate-y-20 md:translate-y-20 opacity-0 transition-all duration-300 z-[300] flex items-center gap-3">
+        <i class="ph ph-check-circle text-2xl" id="toast-icon"></i>
+        <span id="toast-msg">Berhasil!</span>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ==========================================
+        // KONFIGURASI GOOGLE APPS SCRIPT
+        // ==========================================
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyYzr4MBpSjF-A1uJi-2G6LOpktC9qA4W45fqexSZEM7PA-FHScgT4vc0Uu1OYdlEqd/exec"; 
+
+        // ==========================================
+        // KONFIGURASI STATE & KEAMANAN (GEMBOK)
+        // ==========================================
+        window.isLocked = true;
+        
+        let profileData = {
+            name: "FIKRUR ROSYID",
+            nim: "24381051042",
+            prodi: "Pendidikan Guru MI/SD",
+            smt: "2",
+            kelas: "B"
+        };
+
+        // ID disesuaikan agar mudah dipanggil di WA (1 s.d 12)
+        const INITIAL_SUBJECTS = [
+            { id: "1", name: "Belajar dan Pembelajaran", class: "2 B", lecturer: "AFLAHAH, M.Pd.", day: "SENIN", time: "15.00 - 16.40", room: "I-Ruang 63", notes: {} },
+            { id: "2", name: "ICT dalam Pembelajaran MI/SD", class: "2 B", lecturer: "Dr. ABDUS SYAKUR, S.Ag, M.Pd", day: "KAMIS", time: "15.00 - 16.40", room: "I-Ruang 57", notes: {} },
+            { id: "3", name: "Kepramukaan", class: "2 B", lecturer: "HENNY USWATUN HASANAH, M.Pd.", day: "RABU", time: "07.00 - 08.40", room: "J-Ruang 84", notes: {} },
+            { id: "4", name: "Pembelajaran Al Qur'an Hadits di MI/SD", class: "2 B", lecturer: "FATIMATUS ZAHRAH, M.Pd.", day: "SENIN", time: "08.41 - 10.20", room: "I-Ruang 58", notes: {} },
+            { id: "5", name: "Pembelajaran Bahasa Inggris MI/SD", class: "2 B", lecturer: "RABI'AH, M.Pd", day: "JUMAT", time: "07.00 - 08.40", room: "E-Ruang 17", notes: {} },
+            { id: "6", name: "Pembelajaran IPA MI/SD", class: "2 B", lecturer: "MOHAMMAD IMAM SUFIYANTO, S.Si.,S.Pd.,M.Pd.", day: "SENIN", time: "07.00 - 08.40", room: "F-Ruang 29", notes: {} },
+            { id: "7", name: "Pembelajaran IPS MI/SD", class: "2 B", lecturer: "NANDA SEPTIANA, M.Pd", day: "KAMIS", time: "07.00 - 08.40", room: "E-Ruang 17", notes: {} },
+            { id: "8", name: "Pembelajaran Matematika MI/SD", class: "2 B", lecturer: "FATIMATUZ ZAHROH, M.Pd", day: "RABU", time: "08.41 - 10.20", room: "I-Ruang 64", notes: {} },
+            { id: "9", name: "Pembelajaran Penjaskes MI/SD", class: "2 B", lecturer: "THORIK AZIZ, M.Pd.", day: "KAMIS", time: "08.41 - 10.20", room: "F-Ruang 28", notes: {} },
+            { id: "10", name: "Pembelajaran SBDP MI/SD", class: "2 B", lecturer: "Mutik Nur Fadhilah, M.Pd.", day: "KAMIS", time: "10.21 - 12.02", room: "I-Ruang 66", notes: {} },
+            { id: "11", name: "Pengembangan Kurikulum", class: "2 B", lecturer: "LELI LESTARI, M.Pd", day: "RABU", time: "10.21 - 12.02", room: "F-Ruang 21", notes: {} },
+            { id: "12", name: "Strategi Pembelajaran", class: "2 B", lecturer: "LELI LESTARI, M.Pd", day: "RABU", time: "15.00 - 16.40", room: "F-Ruang 21", notes: {} }
+        ];
+
+        window.subjectsData = [...INITIAL_SUBJECTS];
+        window.archivesData = []; 
+        window.activeSubjectId = null;
+        window.activeMeeting = null;
+        window.archiveMode = 'link'; 
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProfile();
+            renderSubjectsList();
+            renderArchiveSubjectsList();
+            applyLockState();
+            
+            if(window.innerWidth < 768) switchView('catatan');
+
+            if(APPS_SCRIPT_URL !== "") {
+                fetchDataFromGAS();
+            }
+        });
+
+        // ==========================================
+        // SINKRONISASI KE GOOGLE APPS SCRIPT
+        // ==========================================
+        async function fetchDataFromGAS() {
+            try {
+                document.getElementById('loading-overlay').classList.remove('hide');
+                const response = await fetch(APPS_SCRIPT_URL + "?action=getData");
+                const result = await response.json();
+                if(result.success && result.data) {
+                    if(result.data.subjects && result.data.subjects.length > 0) window.subjectsData = result.data.subjects;
+                    if(result.data.archives) window.archivesData = result.data.archives;
+                    renderSubjectsList();
+                    renderArchiveSubjectsList();
+                }
+            } catch(e) {
+                console.error("Gagal mengambil data:", e);
+            } finally {
+                document.getElementById('loading-overlay').classList.add('hide');
+            }
+        }
+
+        async function syncToGAS() {
+            if(APPS_SCRIPT_URL === "") return;
+            try {
+                document.getElementById('loading-overlay').classList.remove('hide');
+                document.getElementById('loading-text').innerText = "Menyimpan ke Cloud...";
+                
+                const payload = {
+                    database: {
+                        subjects: window.subjectsData,
+                        archives: window.archivesData
+                    }
+                };
+
+                await fetch(APPS_SCRIPT_URL + "?action=saveData", {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }
+                });
+            } catch(e) {
+                console.error("Gagal sinkronisasi:", e);
+                showToast("Gagal menyimpan ke Google", true);
+            } finally {
+                document.getElementById('loading-overlay').classList.add('hide');
+                document.getElementById('loading-text').innerText = "Memproses Data...";
+            }
+        }
+
+        // ==========================================
+        // FITUR GEMBOK (LOCK / UNLOCK)
+        // ==========================================
+        function toggleLock() {
+            if (window.isLocked) {
+                document.getElementById('input-password').value = ""; 
+                openModal('modal-password');
+            } else {
+                window.isLocked = true;
+                updateLockUI();
+                showToast("Mode Terkunci (Hanya Lihat)", true);
+            }
+        }
+
+        function verifyPassword() {
+            const pwd = document.getElementById('input-password').value;
+            if (pwd === "gusti") {
+                window.isLocked = false;
+                closeModal('modal-password');
+                updateLockUI();
+                showToast("Berhasil dibuka! Anda kini bisa Edit/Tambah.");
+            } else {
+                showToast("Sandi Salah!", true);
+            }
+        }
+
+        function updateLockUI() {
+            const btnLock = document.getElementById('btn-lock');
+            if(window.isLocked) {
+                btnLock.className = "flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl font-bold transition-all shadow-sm border border-red-200";
+                btnLock.innerHTML = `<i class="ph ph-lock-key text-xl"></i><span class="text-sm">Terkunci</span>`;
+            } else {
+                btnLock.className = "flex items-center gap-2 bg-green-500 text-white hover:bg-green-600 px-4 py-2 rounded-xl font-bold transition-all shadow-md border border-green-600";
+                btnLock.innerHTML = `<i class="ph ph-lock-key-open text-xl"></i><span class="text-sm">Terbuka</span>`;
+            }
+            applyLockState();
+        }
+
+        function applyLockState() {
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                if(window.isLocked) btn.classList.add('hidden');
+                else btn.classList.remove('hidden'); 
+            });
+            renderSubjectsList();
+            renderArchiveSubjectsList();
+            if (window.activeSubjectId && !document.getElementById('view-arsip-detail').classList.contains('hide')) {
+                renderArchivesDetailList(window.activeSubjectId);
+            }
+        }
+
+        // ==========================================
+        // NAVIGASI
+        // ==========================================
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hide'));
+            if(viewId === 'course-detail' || viewId === 'arsip-detail') {
+                document.getElementById(`view-${viewId}`).classList.remove('hide');
+            } else {
+                document.getElementById(`view-${viewId}`).classList.remove('hide');
+                window.activeSubjectId = null;
+            }
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            let activeBtnId = `nav-btn-${viewId}`;
+            if(viewId === 'course-detail') activeBtnId = 'nav-btn-catatan';
+            if(viewId === 'arsip-detail') activeBtnId = 'nav-btn-arsip';
+            
+            const btn = document.getElementById(activeBtnId);
+            if(btn) btn.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+
+        // ==========================================
+        // PROFIL
+        // ==========================================
+        function renderProfile() {
+            document.getElementById('header-name').innerText = profileData.name;
+            document.getElementById('header-nim').innerText = `Mahasiswa / ${profileData.nim}`;
+            document.getElementById('header-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name)}&background=db2777&color=fff&size=128`;
+            
+            document.getElementById('detail-name').innerText = profileData.name;
+            document.getElementById('detail-nim').innerText = profileData.nim;
+            document.getElementById('detail-prodi').innerText = profileData.prodi;
+            document.getElementById('detail-semester').innerText = profileData.smt;
+            document.getElementById('detail-kelas').innerText = profileData.kelas;
+            document.getElementById('detail-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name)}&background=db2777&color=fff&size=200`;
+        }
+
+        function openProfileModal() {
+            if(window.isLocked) return showToast("Buka Gembok terlebih dahulu!", true);
+            document.getElementById('form-prof-name').value = profileData.name;
+            document.getElementById('form-prof-nim').value = profileData.nim;
+            document.getElementById('form-prof-prodi').value = profileData.prodi;
+            document.getElementById('form-prof-smt').value = profileData.smt;
+            document.getElementById('form-prof-kelas').value = profileData.kelas;
+            openModal('modal-profile');
+        }
+
+        function saveProfile() {
+            profileData = {
+                name: document.getElementById('form-prof-name').value.toUpperCase(),
+                nim: document.getElementById('form-prof-nim').value,
+                prodi: document.getElementById('form-prof-prodi').value,
+                smt: document.getElementById('form-prof-smt').value,
+                kelas: document.getElementById('form-prof-kelas').value
+            };
+            renderProfile();
+            closeModal('modal-profile');
+            showToast("Profil berhasil diperbarui!");
+        }
+
+        // ==========================================
+        // CATATAN KULIAH
+        // ==========================================
+        function renderSubjectsList() {
+            const container = document.getElementById('subjects-container');
+            const adminHtml = window.isLocked ? '' : `
+                <div class="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="openSubjectModal('SUB_ID')" class="bg-blue-100 text-blue-600 hover:bg-blue-500 hover:text-white p-1.5 rounded-lg transition-colors border border-transparent"><i class="ph ph-pencil-simple"></i></button>
+                    <button onclick="deleteSubject('SUB_ID')" class="bg-red-100 text-red-600 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-colors border border-transparent"><i class="ph ph-trash"></i></button>
+                </div>
+            `;
+
+            container.innerHTML = window.subjectsData.map(sub => `
+                <div class="glass-card bg-white rounded-3xl p-5 relative group flex flex-col h-full hover:shadow-lg hover:-translate-y-1">
+                    ${adminHtml.replace(/SUB_ID/g, sub.id)}
+                    <h3 class="font-bold text-gray-900 text-lg mb-1 pr-14 leading-tight">${sub.name}</h3>
+                    <p class="text-sm text-pink-600 font-bold mb-3 flex items-center gap-1"><i class="ph ph-user-circle"></i> ${sub.lecturer}</p>
+                    
+                    <div class="space-y-1.5 text-xs font-bold text-gray-600 mb-5 flex-1 bg-pink-50/70 p-3 rounded-2xl border border-pink-100">
+                        <p class="flex items-center gap-2"><i class="ph ph-calendar text-pink-500 text-base"></i> ${sub.day} • ${sub.time}</p>
+                        <p class="flex items-center gap-2"><i class="ph ph-map-pin text-pink-500 text-base"></i> ${sub.room} • Kls ${sub.class}</p>
+                    </div>
+
+                    <button onclick="openCourseDetail('${sub.id}')" class="w-full bg-pink-100 text-pink-700 hover:bg-pink-500 hover:text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 mt-auto border border-pink-200">
+                        <i class="ph ph-notebook text-lg"></i> Buka Catatan
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function openCourseDetail(id) {
+            window.activeSubjectId = id;
+            const sub = window.subjectsData.find(s => s.id === id);
+            document.getElementById('detail-course-name').innerHTML = `<i class="ph ph-chalkboard-teacher text-pink-500"></i> ${sub.name}`;
+            document.getElementById('detail-course-lecturer').innerText = sub.lecturer;
+            document.getElementById('detail-day').innerText = sub.day;
+            document.getElementById('detail-time').innerText = sub.time;
+            document.getElementById('detail-room').innerText = sub.room;
+            document.getElementById('detail-class').innerText = sub.class;
+
+            let html = '';
+            for (let i = 1; i <= 16; i++) {
+                const hasNote = sub.notes && sub.notes[i] && sub.notes[i].trim() !== "";
+                const baseCls = "rounded-2xl p-4 flex flex-col items-center gap-1 transition-all border-2 text-center";
+                const cls = hasNote 
+                    ? `${baseCls} bg-pink-50 border-pink-300 text-gray-900 shadow-sm cursor-pointer hover:bg-pink-100` 
+                    : `${baseCls} bg-white border-gray-200 text-gray-400 ${window.isLocked ? 'locked-disabled' : 'cursor-pointer hover:border-pink-300 hover:text-pink-500'}`;
+                
+                const icon = hasNote ? '<i class="ph-fill ph-check-circle text-pink-500"></i>' : `<i class="ph ph-number-circle-${i<=9?i:'zero'}"></i>`;
+                const label = hasNote ? '<span class="text-[10px] bg-pink-500 text-white px-2 py-0.5 rounded-full font-bold">Terisi</span>' : '<span class="text-[10px] font-bold">Kosong</span>';
+
+                html += `
+                    <button onclick="openNoteModal(${i})" class="${cls}">
+                        <div class="text-3xl sm:text-4xl mb-1">${icon}</div>
+                        <span class="font-bold text-sm">Pert. ${i}</span>
+                        ${label}
+                    </button>
+                `;
+            }
+            document.getElementById('meetings-container').innerHTML = html;
+            switchView('course-detail');
+        }
+
+        function openSubjectModal(id = null) {
+            if(window.isLocked) return showToast("Buka Gembok terlebih dahulu!", true);
+            document.getElementById('modal-subject-title').innerText = id ? "Edit Mata Kuliah" : "Tambah Mata Kuliah";
+            if (id) {
+                const sub = window.subjectsData.find(s => s.id === id);
+                document.getElementById('form-subject-id').value = sub.id;
+                document.getElementById('form-subject-name').value = sub.name;
+                document.getElementById('form-subject-lecturer').value = sub.lecturer;
+                document.getElementById('form-subject-class').value = sub.class;
+                document.getElementById('form-subject-day').value = sub.day;
+                document.getElementById('form-subject-time').value = sub.time;
+                document.getElementById('form-subject-room').value = sub.room;
+            } else {
+                document.getElementById('form-subject-id').value = "";
+                ['name','lecturer','class','time','room'].forEach(i => document.getElementById(`form-subject-${i}`).value = "");
+            }
+            openModal('modal-subject');
+        }
+
+        function saveSubject() {
+            const id = document.getElementById('form-subject-id').value || "S" + Date.now();
+            const data = {
+                id: id,
+                name: document.getElementById('form-subject-name').value || "Baru",
+                lecturer: document.getElementById('form-subject-lecturer').value || "-",
+                class: document.getElementById('form-subject-class').value || "-",
+                day: document.getElementById('form-subject-day').value,
+                time: document.getElementById('form-subject-time').value || "-",
+                room: document.getElementById('form-subject-room').value || "-"
+            };
+
+            const idx = window.subjectsData.findIndex(s => s.id === id);
+            if(idx > -1) {
+                data.notes = window.subjectsData[idx].notes;
+                window.subjectsData[idx] = data;
+            } else {
+                data.notes = {};
+                window.subjectsData.push(data);
+            }
+            renderSubjectsList();
+            renderArchiveSubjectsList();
+            closeModal('modal-subject');
+            showToast("Mata Kuliah Disimpan");
+            syncToGAS();
+        }
+
+        function deleteSubject(id) {
+            if(window.isLocked) return showToast("Buka Gembok!", true);
+            if(!confirm("Hapus mata kuliah ini?")) return;
+            window.subjectsData = window.subjectsData.filter(s => s.id !== id);
+            renderSubjectsList();
+            renderArchiveSubjectsList();
+            showToast("Berhasil dihapus", true);
+            syncToGAS();
+        }
+
+        function openNoteModal(meetingNum) {
+            if(window.isLocked) {
+                document.getElementById('btn-save-note').classList.add('hidden');
+                document.getElementById('form-note-content').readOnly = true;
+            } else {
+                document.getElementById('btn-save-note').classList.remove('hidden');
+                document.getElementById('form-note-content').readOnly = false;
+            }
+            
+            window.activeMeeting = meetingNum;
+            const sub = window.subjectsData.find(s => s.id === window.activeSubjectId);
+            document.getElementById('modal-note-title').innerHTML = `<i class="ph ph-notebook text-2xl"></i> Pertemuan ${meetingNum}`;
+            document.getElementById('modal-note-subtitle').innerText = `${sub.name}`;
+            document.getElementById('form-note-content').value = (sub.notes && sub.notes[meetingNum]) ? sub.notes[meetingNum] : "";
+            openModal('modal-note');
+        }
+
+        function saveNote() {
+            if(window.isLocked) return;
+            const val = document.getElementById('form-note-content').value;
+            const idx = window.subjectsData.findIndex(s => s.id === window.activeSubjectId);
+            if(!window.subjectsData[idx].notes) window.subjectsData[idx].notes = {};
+            window.subjectsData[idx].notes[window.activeMeeting] = val;
+            openCourseDetail(window.activeSubjectId);
+            closeModal('modal-note');
+            showToast("Catatan Tersimpan");
+            syncToGAS();
+        }
+
+        // ==========================================
+        // ARSIP (LINK & FILE)
+        // ==========================================
+        function renderArchiveSubjectsList() {
+            const container = document.getElementById('arsip-subjects-container');
+            container.innerHTML = window.subjectsData.map(sub => {
+                const count = window.archivesData.filter(a => a.subjectId === sub.id).length;
+                return `
+                <div onclick="openArchiveDetail('${sub.id}')" class="glass-card bg-white rounded-3xl p-5 relative flex flex-col h-full hover:bg-pink-50 cursor-pointer group hover:border-pink-200 transition-colors shadow-sm">
+                    <div class="flex items-center gap-3 mb-3 border-b border-pink-100 pb-3">
+                        <div class="bg-pink-100 text-pink-600 p-3 rounded-xl"><i class="ph ph-folder-open text-2xl"></i></div>
+                        <h3 class="font-bold text-gray-900 text-base leading-tight">${sub.name}</h3>
+                    </div>
+                    <div class="flex justify-between items-center mt-auto">
+                        <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">${sub.lecturer.substring(0, 15)}...</span>
+                        <span class="text-xs font-bold bg-pink-500 text-white px-3 py-1 rounded-lg">${count} Arsip</span>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function openArchiveDetail(subjectId) {
+            window.activeSubjectId = subjectId;
+            const sub = window.subjectsData.find(s => s.id === subjectId);
+            document.getElementById('arsip-detail-name').innerText = sub.name;
+            renderArchivesDetailList(subjectId);
+            switchView('arsip-detail');
+        }
+
+        function getArcIcon(type) {
+            switch(type) {
+                case 'RPS': return '<i class="ph ph-file-pdf text-red-500 text-3xl"></i>';
+                case 'Grup': return '<i class="ph ph-whatsapp-logo text-green-500 text-3xl"></i>';
+                case 'Classroom': return '<i class="ph ph-chalkboard text-yellow-500 text-3xl"></i>';
+                default: return '<i class="ph ph-file-text text-blue-500 text-3xl"></i>';
+            }
+        }
+
+        function renderArchivesDetailList(subjectId) {
+            const container = document.getElementById('archives-container');
+            const data = window.archivesData.filter(a => a.subjectId === subjectId);
+            
+            const adminHtml = window.isLocked ? '' : `
+                <button onclick="deleteArchive('ARC_ID')" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-500 p-2 rounded-xl transition-colors shadow-sm border border-red-100">
+                    <i class="ph ph-trash text-lg"></i>
+                </button>
+            `;
+
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white/60 p-10 rounded-3xl text-center border-dashed border-2 border-pink-200">
+                        <i class="ph ph-folder-dashed text-5xl mb-2 opacity-40 text-pink-400"></i>
+                        <p class="font-bold text-gray-500">Folder masih kosong.</p>
+                        ${window.isLocked ? '<p class="text-xs mt-1 text-red-400">Buka gembok untuk menambah data.</p>' : ''}
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(arc => {
+                const isLink = !arc.isFile;
+                const badge = isLink 
+                    ? `<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-200"><i class="ph ph-link"></i> Link Tautan</span>`
+                    : `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200"><i class="ph ph-file"></i> File Upload</span>`;
+                
+                const clickAction = isLink 
+                    ? `window.open('${arc.url}', '_blank')` 
+                    : `downloadFile('${arc.fileData}', '${arc.title}')`; 
+
+                return `
+                <div class="bg-white rounded-2xl p-4 flex items-center justify-between hover:shadow-md transition-shadow shadow-sm border border-pink-100">
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="bg-pink-50 p-3 rounded-xl hidden sm:block">
+                            ${getArcIcon(arc.type)}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-bold text-gray-800 text-lg cursor-pointer hover:text-pink-600" onclick="${clickAction}">${arc.title}</h4>
+                                ${badge}
+                            </div>
+                            ${isLink 
+                                ? `<p class="text-sm text-blue-500 truncate max-w-[200px] md:max-w-md">${arc.url}</p>`
+                                : `<p class="text-sm text-gray-500"><i class="ph ph-hard-drives"></i> Tersimpan di Database</p>`
+                            }
+                        </div>
+                    </div>
+                    ${adminHtml.replace(/ARC_ID/g, arc.id)}
+                </div>
+            `}).join('');
+        }
+
+        function setArchiveMode(mode) {
+            window.archiveMode = mode;
+            const tabLink = document.getElementById('tab-link');
+            const tabFile = document.getElementById('tab-file');
+            
+            if(mode === 'link') {
+                tabLink.className = "flex-1 py-2 rounded-lg font-bold text-sm bg-white shadow text-pink-700 transition-all";
+                tabFile.className = "flex-1 py-2 rounded-lg font-bold text-sm text-pink-600/60 hover:text-pink-700 transition-all";
+                document.getElementById('section-link').classList.remove('hidden');
+                document.getElementById('section-file').classList.add('hidden');
+            } else {
+                tabFile.className = "flex-1 py-2 rounded-lg font-bold text-sm bg-white shadow text-pink-700 transition-all";
+                tabLink.className = "flex-1 py-2 rounded-lg font-bold text-sm text-pink-600/60 hover:text-pink-700 transition-all";
+                document.getElementById('section-file').classList.remove('hidden');
+                document.getElementById('section-link').classList.add('hidden');
+            }
+        }
+
+        function openArchiveModal() {
+            if(window.isLocked) return showToast("Buka Gembok terlebih dahulu!", true);
+            document.getElementById('form-archive-title').value = "";
+            document.getElementById('form-archive-url').value = "";
+            document.getElementById('form-archive-file').value = "";
+            setArchiveMode('link');
+            openModal('modal-archive');
+        }
+
+        function saveArchive() {
+            if(window.isLocked) return;
+            const title = document.getElementById('form-archive-title').value || "Dokumen Baru";
+            const type = document.getElementById('form-archive-type').value;
+            
+            const docData = {
+                id: "A" + Date.now(),
+                subjectId: window.activeSubjectId,
+                title: title,
+                type: type,
+                date: new Date().toLocaleDateString('id-ID')
+            };
+
+            if(window.archiveMode === 'link') {
+                docData.isFile = false;
+                docData.url = document.getElementById('form-archive-url').value;
+                if(!docData.url) return showToast("URL Kosong!", true);
+                
+                window.archivesData.unshift(docData);
+                finishSaveArchive();
+                syncToGAS();
+            } else {
+                const fileInput = document.getElementById('form-archive-file');
+                if(fileInput.files.length === 0) return showToast("Pilih file dulu!", true);
+                
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    docData.isFile = true;
+                    docData.fileData = e.target.result; 
+                    window.archivesData.unshift(docData);
+                    finishSaveArchive();
+                    syncToGAS();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function finishSaveArchive() {
+            renderArchivesDetailList(window.activeSubjectId);
+            renderArchiveSubjectsList(); 
+            closeModal('modal-archive');
+            showToast("Arsip Berhasil Disimpan");
+        }
+
+        function deleteArchive(id) {
+            if(window.isLocked) return showToast("Buka Gembok!", true);
+            if(!confirm("Yakin hapus arsip ini?")) return;
+            window.archivesData = window.archivesData.filter(a => a.id !== id);
+            renderArchivesDetailList(window.activeSubjectId);
+            renderArchiveSubjectsList();
+            showToast("Dihapus", true);
+            syncToGAS();
+        }
+
+        function downloadFile(base64Data, filename) {
+            const a = document.createElement("a");
+            a.href = base64Data;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // ==========================================
+        // UTILITIES
+        // ==========================================
+        function showToast(msg, isErr = false) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            
+            if(isErr) {
+                t.className = "fixed top-6 right-6 md:bottom-6 md:top-auto bg-red-500 text-white px-6 py-3.5 rounded-2xl shadow-xl font-bold transform -translate-y-20 md:translate-y-20 opacity-0 transition-all duration-300 z-[300] flex items-center gap-3";
+                document.getElementById('toast-icon').className = "ph ph-warning-circle text-2xl";
+            } else {
+                t.className = "fixed top-6 right-6 md:bottom-6 md:top-auto bg-green-500 text-white px-6 py-3.5 rounded-2xl shadow-xl font-bold transform -translate-y-20 md:translate-y-20 opacity-0 transition-all duration-300 z-[300] flex items-center gap-3";
+                document.getElementById('toast-icon').className = "ph ph-check-circle text-2xl";
+            }
+
+            t.classList.remove('opacity-0', '-translate-y-20', 'md:translate-y-20');
+            
+            setTimeout(() => {
+                t.classList.add('opacity-0');
+                if(window.innerWidth < 768) t.classList.add('-translate-y-20');
+                else t.classList.add('md:translate-y-20');
+            }, 3000);
+        }
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
+  
+</body>
+</html>
